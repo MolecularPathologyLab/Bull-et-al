@@ -27,13 +27,23 @@ dualGSEA <- function(data, group_data, group_colname, geneset_list) {
   if(!group_colname %in% colnames(group_data))
     stop("The group name was not found in the group data.",
          call. = F)
-  ### next, check if the group = 2
-  if(length(unique(group_data[ , group_colname %in% names(group_data)])) != 2)
-    stop("There must be exact 2 groups.",
-         call. = F)
+  ### next, check if the group = 2. 
+  if(is.character(group_data[ , group_colname %in% names(group_data)]))
+    if(length(unique(group_data[ , group_colname %in% names(group_data)])) != 2)
+      stop("There must be exact 2 groups.",
+           call. = F)
+  if(is.data.frame(group_data[ , group_colname %in% names(group_data)]))
+    if(length(unique(group_data[ , group_colname %in% names(group_data)][[group_colname]])) != 2)
+      stop("There must be exact 2 groups.",
+           call. = F)
+  
   
   ### next check if the sample ids matches to each other and aligns (order the group data first)
   group_data <- group_data %>% arrange(as.factor(.[[group_colname]]))
+  ### first check if the sample is exists
+  if(!all(colnames(data) %in% rownames(group_data)))
+    stop("Please make sure the rownames in group data is your sample IDs")
+  ### then check if they are ordered the same between expression and group data
   if(!all(colnames(data) == rownames(group_data)))
     data = data %>% dplyr::select(all_of(rownames(group_data)))
   
@@ -97,38 +107,97 @@ dualGSEA <- function(data, group_data, group_colname, geneset_list) {
   
   
   ## Bar plot fGSEA ----
-  p0 <- ggplot(gsea.dt, aes(x = reorder(pathway, NES),y = NES,
-                            fill = ifelse(padj < 0.05, "Highlighted", "Normal")))+
-    geom_bar(stat = "identity") +
-    coord_flip(clip = "off") + # to flip the bar
-    theme(panel.background=element_blank(),
-          panel.border=element_rect(fill = NA,colour="gray50"),
-          axis.title.y=element_blank(), axis.title.x = element_text(size = 14),
-          axis.text = element_text(size = 10),
-          plot.title = element_text(hjust = 0.5, size = 15),
-          legend.position= c(0.75,0.16),
-          legend.key = element_rect(fill = "white"),
-          legend.text = element_text(size = 10),
-          legend.title = element_text(size = 12)) +
-    scale_y_continuous(limits = c(min(gsea.dt$NES)-0.05, max(gsea.dt$NES)+0.05)) +
-    scale_x_discrete(limits=rev(gsea.dt$NAME)) +
-    scale_fill_manual(name = "padj",
-                      labels = c("< 0.05", "> 0.05"), 
-                      values = c("red", "black"), guide = guide_legend(reverse = TRUE))+
-    ylab("Normalized enrichment score (NES)") +
-    ggtitle("GSEA Barplot")
-  
-  ### adding groups in the barplot
-  p0 <- p0 + annotation_custom(
-    grob = grid::textGrob(
-      label = group1,
-      x = 0.8, y = 1.02, just = "center", gp = grid::gpar(fontsize = 10, face = "bold", col = "#1B80AD"))
-  ) 
-  p0 <- p0 + annotation_custom(
-    grob = grid::textGrob(
-      label = group2,
-      x = 0.2, y = 1.02, just = "center", gp = grid::gpar(fontsize = 10, face = "bold", col = "#EF7923"))
-  ) 
+  if(all(gsea.dt$NES > 0) == TRUE) {
+    
+    p0 <- ggplot(gsea.dt, aes(x = reorder(pathway, NES),y = NES,
+                              fill = ifelse(padj < 0.05, "Highlighted", "Normal")))+
+      geom_bar(stat = "identity") +
+      coord_flip(clip = "off") + # to flip the bar
+      theme(panel.background=element_blank(),
+            panel.border=element_rect(fill = NA,colour="gray50"),
+            axis.title.y=element_blank(), axis.title.x = element_text(size = 14),
+            axis.text = element_text(size = 10),
+            plot.title = element_text(hjust = 0.5, size = 15),
+            legend.position= c(0.75,0.16),
+            legend.key = element_rect(fill = "white"),
+            legend.text = element_text(size = 10),
+            legend.title = element_text(size = 12)) +
+      scale_y_continuous(limits = c(0, max(gsea.dt$NES)+0.05)) +
+      scale_x_discrete(limits=rev(gsea.dt$NAME)) +
+      scale_fill_manual(name = "padj",
+                        labels = c("< 0.05", "> 0.05"), 
+                        values = c("red", "black"), guide = guide_legend(reverse = TRUE))+
+      ylab("Normalized enrichment score (NES)") +
+      ggtitle("GSEA Barplot") +
+      annotation_custom(
+      grob = grid::textGrob(
+        label = group1,
+        x = 0.8, y = 1.02, just = "center", gp = grid::gpar(fontsize = 10, face = "bold", col = "#1B80AD"))
+    ) 
+  } else if(all(gsea.dt$NES < 0) == TRUE) {
+    
+    p0 <- ggplot(gsea.dt, aes(x = reorder(pathway, NES),y = NES,
+                              fill = ifelse(padj < 0.05, "Highlighted", "Normal")))+
+      geom_bar(stat = "identity") +
+      coord_flip(clip = "off") + # to flip the bar
+      theme(panel.background=element_blank(),
+            panel.border=element_rect(fill = NA,colour="gray50"),
+            axis.title.y=element_blank(), axis.title.x = element_text(size = 14),
+            axis.text = element_text(size = 10),
+            plot.title = element_text(hjust = 0.5, size = 15),
+            legend.position= c(0.75,0.16),
+            legend.key = element_rect(fill = "white"),
+            legend.text = element_text(size = 10),
+            legend.title = element_text(size = 12)) +
+      scale_y_continuous(limits = c(min(gsea.dt$NES)-0.05, 0)) +
+      scale_x_discrete(limits=rev(gsea.dt$NAME)) +
+      scale_fill_manual(name = "padj",
+                        labels = c("< 0.05", "> 0.05"), 
+                        values = c("red", "black"), guide = guide_legend(reverse = TRUE))+
+      ylab("Normalized enrichment score (NES)") +
+      ggtitle("GSEA Barplot") +
+      annotation_custom(
+        grob = grid::textGrob(
+          label = group2,
+          x = 0.2, y = 1.02, just = "center", gp = grid::gpar(fontsize = 10, face = "bold", col = "#EF7923"))
+      ) 
+    
+  } else {
+    
+    p0 <- ggplot(gsea.dt, aes(x = reorder(pathway, NES),y = NES,
+                              fill = ifelse(padj < 0.05, "Highlighted", "Normal")))+
+      geom_bar(stat = "identity") +
+      coord_flip(clip = "off") + # to flip the bar
+      theme(panel.background=element_blank(),
+            panel.border=element_rect(fill = NA,colour="gray50"),
+            axis.title.y=element_blank(), axis.title.x = element_text(size = 14),
+            axis.text = element_text(size = 10),
+            plot.title = element_text(hjust = 0.5, size = 15),
+            legend.position= c(0.75,0.16),
+            legend.key = element_rect(fill = "white"),
+            legend.text = element_text(size = 10),
+            legend.title = element_text(size = 12)) +
+      scale_y_continuous(limits = c(min(gsea.dt$NES)-0.05, max(gsea.dt$NES)+0.05)) +
+      scale_x_discrete(limits=rev(gsea.dt$NAME)) +
+      scale_fill_manual(name = "padj",
+                        labels = c("< 0.05", "> 0.05"), 
+                        values = c("red", "black"), guide = guide_legend(reverse = TRUE))+
+      ylab("Normalized enrichment score (NES)") +
+      ggtitle("GSEA Barplot")
+    
+    ### adding groups in the barplot
+    p0 <- p0 + annotation_custom(
+      grob = grid::textGrob(
+        label = group1,
+        x = 0.8, y = 1.02, just = "center", gp = grid::gpar(fontsize = 10, face = "bold", col = "#1B80AD"))
+    ) 
+    p0 <- p0 + annotation_custom(
+      grob = grid::textGrob(
+        label = group2,
+        x = 0.2, y = 1.02, just = "center", gp = grid::gpar(fontsize = 10, face = "bold", col = "#EF7923"))
+    ) 
+
+  }
   
   #print(p0) ## Barplot
   
@@ -145,7 +214,7 @@ dualGSEA <- function(data, group_data, group_colname, geneset_list) {
   enrichmentplot_list <- list()
   for (geneset_name in names(geneset_list)) {
     
-    p1 <- fgsea::plotEnrichment(H_list[[geneset_name]], gene_rank_list, gseaParam = 1, ticksSize = 0.1) +
+    p1 <- fgsea::plotEnrichment(geneset_list[[geneset_name]], gene_rank_list, gseaParam = 1, ticksSize = 0.1) +
       labs(title=geneset_name, y = "Enrichment score") +
       theme(plot.title = element_text(hjust = 0.5, size = 10, face = "bold"), 
             panel.background = element_blank(),
@@ -302,19 +371,30 @@ dualGSEA <- function(data, group_data, group_colname, geneset_list) {
     mean_group1 <- mean(ssgsea_scores[SSGSEA$Group == group1])
     mean_group2 <- mean(ssgsea_scores[SSGSEA$Group == group2])
     
-    ### The switch of group labels is made in this instance so that signature is predicting FOR the 
-    ### group-of-interest (positive), and positively is the signature selecting for that group!
-    SSGSEA$Group_switched <- SSGSEA$Group
-    SSGSEA$Group_switched <- case_when(SSGSEA$Group_switched == group1 ~ group2,
-                                       SSGSEA$Group_switched == group2 ~ group1)
-    
-    pred <- ROCR::prediction(SSGSEA[[geneset_name]], SSGSEA$Group_switched)
-    perf <- ROCR::performance(pred, "tpr", "fpr")
-    auc <- ROCR::performance(pred, "auc")
-    
-    ROCR::plot(perf, colorize = TRUE, 
-         main = paste0(geneset_name, "\nPrediction for ", sprintf("%s", group1), ": AUC = ", round(auc@y.values[[1]], 2))
-    )
+    ### If the mean is higher for group 2, we will leave the label as it is, so that it will 
+    ### tell us whether the signature is truly predictive for calling group 2
+    if (mean_group2 >= mean_group1){
+      pred <- ROCR::prediction(SSGSEA[[geneset_name]], SSGSEA$Group)
+      perf <- ROCR::performance(pred, "tpr", "fpr")
+      auc <- ROCR::performance(pred, "auc")
+      ROCR::plot(perf, colorize = TRUE,
+           main = paste0(geneset_name, "\nPrediction for ", sprintf("%s", group2), ": AUC = ", round(auc@y.values[[1]], 2))
+           )
+      }
+    else{
+      ### The switch of group labels is made in this instance so that signature is predicting FOR the 
+      ### group-of-interest (positive), and positively is the signature selecting for that group!
+      SSGSEA$Group_switched <- SSGSEA$Group
+      SSGSEA$Group_switched <- case_when(SSGSEA$Group_switched == group1 ~ group2,
+                                         SSGSEA$Group_switched == group2 ~ group1)
+      
+      pred <- ROCR::prediction(SSGSEA[[geneset_name]], SSGSEA$Group_switched)
+      perf <- ROCR::performance(pred, "tpr", "fpr")
+      auc <- ROCR::performance(pred, "auc")
+      ROCR::plot(perf, colorize = TRUE, 
+           main = paste0(geneset_name, "\nPrediction for ", sprintf("%s", group1), ": AUC = ", round(auc@y.values[[1]], 2))
+           )
+    }
     
     rocplot_list[[geneset_name]] <- recordPlot()
     invisible(dev.off())

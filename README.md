@@ -1,15 +1,22 @@
 # Bull-et-al
 
-## **NOTE** 
 This repository consists of `dualGSEA()` R function created for the preprint BioRxiv submission:
 "**Evaluation of Gene Set Enrichment Analysis (GSEA) tools highlights the value of single sample approaches over pairwise for robust biological discovery.**"
 
 
-## **IMPORTANT**
+## **IMPORTANT: Input Data Structure and R packages**
 
-Before you run the function `dualGSEA()`, please make sure you have all the dependencies
-packages installed and the packages has been loaded. See below:
+Before you run the function `dualGSEA()`, please make sure:
 
+1. **Your input data are structured accordingly:**
+- Expression data (Microarray or RNA-seq): As dataframe with your gene symbols as your rows and sample ids as your columns. NOTE: `dualGSEA` does not provide option for altering parameters in the dependency functions such as for `fgsea` or `gsva` and utilises the default parameters. NOTE: for RNA-seq data, the recommendation is you have your normalised data to run rather than raw counts (as the function relies on `limma` for ranking method and not `DESeq`, and currently, the function does not include the input rankings from user directly.).
+- Group data: Please make sure the groups are of n=2 groupings for pairwise comparisons. The data need to be so that the rownames are sample ids, so it can match up with expression data internally.
+- GeneSet list: Please supply the gene signatures as a list. NOTE: Due to multiple outputs of the function, the execution and performance of the function may depend on the number of geneset list you supply. The larger the number of geneset list, the longer it may take to process.
+
+
+2. R packages requirement and installations:
+Please make sure you have all the dependencies packages installed and the R packages has been loaded.
+See below:
 
 These are the list of required packages.
 ```r
@@ -43,4 +50,3 @@ suppressMessages(
   library(easyGgplot2)
 )
 ```
-
