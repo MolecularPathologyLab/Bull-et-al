@@ -264,16 +264,32 @@ dualGSEA <- function(data, group_data, group_colname, geneset_list) {
   
   message("Running single sample GSEA (ssGSEA)...")
   
-  ssgsea_scores_1 <- GSVA::gsva(
-    as.matrix(data),
-    geneset_list,
-    method = "ssgsea",
-    kcdf = "Gaussian",
-    min.sz = 1,
-    max.sz = Inf,
-    mx.diff = TRUE,
-    verbose = TRUE
-  )
+  if(utils::packageVersion("GSVA") <= "1.48.3" ) {
+    
+    ### ssGSEA
+    ssgsea_scores_1 <- GSVA::gsva(
+      as.matrix(data),
+      geneset_list,
+      method = "ssgsea",
+      kcdf = "Gaussian",
+      min.sz = 1,
+      max.sz = Inf,
+      mx.diff = TRUE,
+      verbose = TRUE
+    )
+    
+  } else {
+    
+    ### ssGSEA -- update
+    ssgsea_par <- GSVA::ssgseaParam(as.matrix(data), 
+                                    geneset_list,
+                                    minSize = 1,
+                                    maxSize = Inf,
+                                    normalize = TRUE)
+    ssgsea_scores_1 <- suppressWarnings(GSVA::gsva(ssgsea_par, verbose = TRUE))
+    
+  }
+  
   
   message("ssGSEA finished!")
   

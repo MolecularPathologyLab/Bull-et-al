@@ -4,7 +4,7 @@ This repository consists of `dualGSEA()` R function created for the preprint Bio
 "**Evaluation of Gene Set Enrichment Analysis (GSEA) tools highlights the value of single sample approaches over pairwise for robust biological discovery.**"
 
 
-## **IMPORTANT: Input Data Structure and R packages**
+### **IMPORTANT: Input Data Structure and R packages**
 
 Before you run the function `dualGSEA()`, please make sure:
 
@@ -50,3 +50,23 @@ suppressMessages(
   library(easyGgplot2)
 )
 ```
+
+### **Outputs**
+
+The function outputs a list of results, including:
+<ul>
+<li> Differential Gene Rankings (tabular format)
+<li> Pairwise GSEA result (tabular format)
+<li> Pairwise Barplot
+<li> Pairwise Enrichment plots
+<li> Single sample GSEA score result (tabular format)
+<li> Single sample density plots
+<li> Single sample histogram
+<li> Single sample ROC plots
+<li> Single sample cutoff labels (for ROC analysis)
+<li> Single sample waterfall plots
+</ul>
+
+<br>
+
+<img src="data/figures/dualgsea_output_schematic.png" class="centre" height="500"/>
