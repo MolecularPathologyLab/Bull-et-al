@@ -1,0 +1,227 @@
+---
+title: 'dualGSEA: example run!'
+author: "Sudhir B. Malla"
+date: "`r format(Sys.time(), '%Y-%m-%d')`"
+output:
+  html_document:    
+  code_folding: show
+  pdf_document: default
+---
+
+```{r setup, include=FALSE, tidy.opts=list(width.cutoff=100)}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+## Example run of ***dualGSEA()*** function
+
+### Installation R packages 
+Below are the list of R packages required for the ***dualGSEA()*** function to run. ***cowplot*** and ***reactable*** are used here for documentation purpose and are not necessary to run the function.
+```{r packages, results='hide', tidy.opts=list(width.cutoff=100)}
+
+## List of packages
+bio_pkgs <- c("limma", "msigdbr", "DOSE", "devtools","fgsea", "enrichplot","GSVA","circlize",
+              "ComplexHeatmap","ggridges","pROC","cutpointr","ggalluvial","waterfalls",
+              "randomForest","devtools","tibble","msigdbr","data.table","tidyverse","dplyr",
+              "ggplot2","grid","gridExtra","ROCR","reshape2","stats","RColorBrewer","ggpubr",
+              "ggbeeswarm","tidyr","caret","escape", "doRNG")
+github_pkgs <- c("kassambara/easyGgplot2")
+
+
+## If not already installed
+# suppressMessages({
+#   if (!require(bio_pkgs, quietly = TRUE))
+#     BiocManager::install(bio_pkgs)
+#   if (!require(github_pkgs, quietly = TRUE))
+#     devtools::install_github(github_pkgs, dependencies = TRUE, force=TRUE)  
+# })
+
+
+## Load R packages
+suppressPackageStartupMessages(suppressMessages(
+  lapply(bio_pkgs, library, character.only = TRUE)
+))
+suppressPackageStartupMessages(suppressMessages(
+  library(easyGgplot2)
+))
+
+## Extra packages to run example
+# BiocManager::install("cowplot")
+library(cowplot)
+# BiocManager::install("reactable")
+library(reactable)
+
+```
+
+
+### Import example data 
+The ***dualGSEA()*** function requires three inputs (1. *gene expression data*, 2. *group labels*, 3. *geneset list*). This example provided here is the subset of the data from [Kennedy *et al.*, JCO, 2011](https://doi.org/10.1200/jco.2011.35.4498), originally consisting of n=215 stage II primary tumours from colon cancer patients. [PDSclassifier](https://github.com/sidmall/PDSclassifier) was used on the whole dataset (n=215; [E-MTAB-863](https://www.ebi.ac.uk/biostudies/arrayexpress/studies/E-MTAB-864)) prior to subsetting into PDS1 and PDS3 samples for the example run below. The list of gene signature was downloaded directly from the Molecular Signature Database (MSigDB) via *msigdbr* R package. Here, we use the **"Hallmark"** collection (n=50).
+<br>
+**NOTE**: In the study (Bull *et al.*,), Figure 4 was NOT generated using ***dualGSEA()*** but rather generated separately. You may find slight variation between the Figure 4 and results generated here due to, 1. geneset from MSigDB which may differ due to different version of *msigdbr* used, 2. **normalised ssGSEA** score also differ slightly due to subsetting the dataset.
+<br>
+```{r data-import, message=FALSE, warning=FALSE, tidy.opts=list(width.cutoff=100)}
+
+## example gene expression data
+exp_data_filenm <- "example_expression_data.txt"
+exp_data_filepath <- here::here("data/example_run", exp_data_filenm)
+exp_data <- read.delim(exp_data_filepath, header = T, stringsAsFactors = F)
+
+head(exp_data[1:5])
+
+
+## example sample labels data
+label_data_filenm <- "example_labels.txt"
+label_data_filepath <- here::here("data/example_run", label_data_filenm)
+label_data <- read.delim(label_data_filepath, header = T, stringsAsFactors = F)
+
+head(label_data)
+
+## making sure the sample are aligned between the two data
+#all(colnames(exp_data) == label_data$Sample_ID)
+
+
+## Lastly, geneset list - we will use MSigDB to extract Hallmark collection for this example.
+geneset1 <- msigdbr::msigdbr(category = "H")
+geneset_list <- geneset1 %>% split(f = .$gs_name, x = .$human_gene_symbol)
+
+```
+
+### Running ***dualGSEA***
+To run ***dualGSEA***, please download and run the function.
+Make sure the input data are as instructed.
+```{r dualgsea, message=FALSE, warning=FALSE,  tidy.opts=list(width.cutoff=100)}
+
+## Get dualGSEA() function
+dualgsea_fun_file <- here::here("function", "dualGSEA.R")
+source(dualgsea_fun_file)
+
+
+## Run dualGSEA 
+## NOTE: invisible() and capture.output() is being used here to hide messages and progressbar
+## that would be shown in the document otherwise.
+set.seed(127)
+invisible(capture.output(
+  
+  res1 <- dualGSEA(data = exp_data, 
+                 group_data = label_data, 
+                 group_colname = "PDS_call",
+                 geneset_list = geneset_list)
+  
+  ))
+
+## Outputs in a list
+names(res1)
+
+## save as rds
+# saveRDS(res1,
+#         file = here::here("data/example_run/example_result", "example_result_obj.rds")
+#           )
+
+```
+<br>
+
+### Outputs:
+
+In this example, the ***dualGSEA*** outputs list containing plots associated with all n=50 Hallmark gene signature. However, for the purpose of the documentation, visual figures only for **"HALLMARK_MYC_TARGETS_V1"** geneset will be displayed.
+
+<br>
+
+#### 1. Differential Gene Ranking:
+```{r output1, message=FALSE, warning=FALSE,  tidy.opts=list(width.cutoff=100)}
+
+## showing top 5 rows
+reactable(head(res1[["Differential_GeneRanking"]])[1:5,])
+
+```
+<br>
+
+#### 2. Pairwise GSEA Result (Table):
+```{r output2, message=FALSE, warning=FALSE,  tidy.opts=list(width.cutoff=100)}
+
+## showing top 5 row. Leading edge gene column removed from display.
+reactable(head(res1[["Pairwise_ResultTable"]])[1:5,1:6])
+
+```
+<br>
+
+#### 3. Pairwise GSEA Barplot:
+The output consists of barplot that displays the significantly upregulated or downregulated geneset between the two comparable groups.
+```{r output3, message=FALSE, warning=FALSE,  tidy.opts=list(width.cutoff=100)}
+
+ggdraw() + 
+  draw_image(here::here("data/example_run/example_result", "output3.png"))
+
+```
+<br>
+
+#### 4. Pairwise Enrichment:
+```{r output4, message=FALSE, warning=FALSE,  tidy.opts=list(width.cutoff=100)}
+
+ggdraw() + 
+  draw_image(here::here("data/example_run/example_result", "output4.png"))
+
+```
+<br>
+
+#### 5. Single sample GSEA Result (Table):
+```{r output5, message=FALSE, warning=FALSE,  tidy.opts=list(width.cutoff=100)}
+
+reactable(head(res1[["SingleSample_ResultTable"]])[1:5,1:6])
+
+```
+<br>
+
+#### 6. Single sample GSEA Density plot:
+```{r output6, message=FALSE, warning=FALSE,  tidy.opts=list(width.cutoff=100)}
+
+ggdraw() + 
+  draw_image(here::here("data/example_run/example_result", "output6.png"))
+
+```
+<br>
+
+#### 7. Single sample GSEA Histogram:
+```{r output7, message=FALSE, warning=FALSE,  tidy.opts=list(width.cutoff=100)}
+
+ggdraw() + 
+  draw_image(here::here("data/example_run/example_result", "output7.png"))
+
+```
+<br>
+
+#### 8. Single sample GSEA ROC plot:
+```{r output8, message=FALSE, warning=FALSE,  tidy.opts=list(width.cutoff=100)}
+
+ggdraw() + 
+  draw_image(here::here("data/example_run/example_result", "output8.png"))
+
+```
+<br>
+
+#### 9. Single sample GSEA Optimum Cutoff Labels (for Waterfall plots):
+```{r output9, message=FALSE, warning=FALSE,  tidy.opts=list(width.cutoff=100)}
+
+reactable(head(res1[["SingleSample_OptimumCutoff_Labels"]])[1:5,1:5])
+
+```
+<br>
+
+#### 10. Single sample Waterfallplot: 
+```{r output10, message=FALSE, warning=FALSE,  tidy.opts=list(width.cutoff=100), fig.height=5}
+
+ggdraw() + 
+  draw_image(here::here("data/example_run/example_result", "output10.png"))
+
+```
+
+***
+
+### Session End
+```{r session-end, tidy=TRUE, collapse=TRUE, tidy.opts=list(width.cutoff=100)}
+
+devtools::session_info()
+
+```

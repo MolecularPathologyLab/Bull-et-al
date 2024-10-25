@@ -98,7 +98,7 @@ dualGSEA <- function(data, group_data, group_colname, geneset_list) {
   names(gene_rank_list) <- degs$symbol
   gene_rank_list <- sort(gene_rank_list, decreasing = TRUE)
   
-  
+  set.seed(127)
   fgseaRes <- fgsea::fgsea(geneset_list, 
                     stats = gene_rank_list , 
                     nPermSimple = 1000,
@@ -267,7 +267,8 @@ dualGSEA <- function(data, group_data, group_colname, geneset_list) {
   if(utils::packageVersion("GSVA") <= "1.48.3" ) {
     
     ### ssGSEA
-    ssgsea_scores_1 <- GSVA::gsva(
+    set.seed(127)
+    ssgsea_scores_1 <- suppressWarnings(GSVA::gsva(
       as.matrix(data),
       geneset_list,
       method = "ssgsea",
@@ -276,16 +277,17 @@ dualGSEA <- function(data, group_data, group_colname, geneset_list) {
       max.sz = Inf,
       mx.diff = TRUE,
       verbose = TRUE
-    )
+    ))
     
   } else {
     
     ### ssGSEA -- update
-    ssgsea_par <- GSVA::ssgseaParam(as.matrix(data), 
+    set.seed(127)
+    ssgsea_par <- suppressWarnings(GSVA::ssgseaParam(as.matrix(data), 
                                     geneset_list,
                                     minSize = 1,
                                     maxSize = Inf,
-                                    normalize = TRUE)
+                                    normalize = TRUE))
     ssgsea_scores_1 <- suppressWarnings(GSVA::gsva(ssgsea_par, verbose = TRUE))
     
   }
@@ -479,7 +481,7 @@ dualGSEA <- function(data, group_data, group_colname, geneset_list) {
             legend.title = element_blank(),
             plot.title = element_text(hjust = 0.5, size=10, face="bold"),
             axis.title.y = element_text(size = 8,  colour="black", face="bold"),
-            axis.text.y = element_blank(),
+            axis.text.y = element_text(size = 6,  colour="black"),
             axis.title.x = element_text(size = 8,  colour="black", face="bold") ,
             axis.text.x = element_blank(),
             axis.ticks = element_blank(),
